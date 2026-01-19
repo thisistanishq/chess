@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Standalone Chess Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css">
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+
+        /* CustomScrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        .highlight-white {
+            box-shadow: inset 0 0 3px 3px yellow;
+        }
+
+        .highlight-black {
+            box-shadow: inset 0 0 3px 3px blue;
+        }
+    </style>
+</head>
+
+<body class="flex items-center justify-center min-h-screen p-4 md:p-8 bg-gray-50">
+
+    <div
+        class="flex flex-col md:flex-row gap-8 w-full max-w-6xl shadow-xl rounded-xl overflow-hidden bg-white min-h-[600px]">
+
+        <!-- Left Panel: Game Board area -->
+        <div class="flex flex-col flex-1 p-6 gap-6 bg-white">
+
+            <!-- Opponent Info -->
+            <div class="flex items-center gap-4 p-3 bg-gray-50 rounded-lg border border-gray-100">
+                <div class="w-12 h-12 rounded-full overflow-hidden bg-gray-200 shrink-0">
+                    <img id="opponent-avatar" src="../public/about-me/chess-avatar/default.png" alt="Andre"
+                        class="w-full h-full object-cover">
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h2 class="font-semibold text-gray-900">Andre (AI)</h2>
+                        <span
+                            class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700 rounded-full">1560</span>
+                    </div>
+                    <div id="captured-by-black" class="flex flex-wrap gap-1 mt-1 min-h-[20px]"></div>
+                </div>
+            </div>
+
+            <!-- Chess Board -->
+            <div class="flex-1 flex justify-center items-center bg-gray-100/50 rounded-lg p-2">
+                <div id="myBoard" class="w-full max-w-[500px] aspect-square"></div>
+            </div>
+
+            <!-- Player Info -->
+            <div class="flex items-center gap-4 p-3 bg-gray-50 rounded-lg border border-gray-100">
+                <div class="w-12 h-12 rounded-full overflow-hidden bg-black shrink-0 p-1">
+                    <img src="../public/about-me/chess-avatar/horse.png" alt="You" class="w-full h-full object-contain">
+                </div>
+                <div class="flex-1">
+                    <h2 class="font-semibold text-gray-900">You</h2>
+                    <div id="captured-by-white" class="flex flex-wrap gap-1 mt-1 min-h-[20px]"></div>
+                </div>
+                <!-- Controls -->
+                <div class="flex gap-2">
+                    <button id="undoBtn"
+                        class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Undo
+                    </button>
+                    <button id="resetBtn"
+                        class="px-3 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        New Game
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Right Panel: Info & History -->
+        <div class="hidden md:flex flex-col w-80 bg-gray-50 border-l border-gray-200">
+
+            <!-- Avatar Reaction -->
+            <div class="p-6 flex flex-col items-center border-b border-gray-200 bg-white">
+                <div class="relative mb-4">
+                    <img id="reaction-avatar" src="../public/about-me/chess-avatar/default.png" alt="Reaction"
+                        class="w-32 h-32 object-contain">
+                </div>
+                <div id="reaction-message-container"
+                    class="w-full bg-blue-600 text-white p-3 rounded-lg text-center text-sm hidden">
+                    <p id="reaction-message">Let's play!</p>
+                </div>
+            </div>
+
+            <!-- Opening Info -->
+            <div class="p-4 border-b border-gray-200 bg-white">
+                <span class="text-xs uppercase tracking-wider text-gray-500 font-semibold">Current Opening</span>
+                <p id="opening-name" class="font-medium text-gray-900 mt-1">Starting Position</p>
+            </div>
+
+            <!-- Move History -->
+            <div class="flex-1 overflow-y-auto p-4 bg-gray-50">
+                <table class="w-full text-sm text-left">
+                    <thead>
+                        <tr>
+                            <th class="pb-2 text-gray-500 font-medium">#</th>
+                            <th class="pb-2 text-gray-900 font-medium">White</th>
+                            <th class="pb-2 text-gray-900 font-medium">Black</th>
+                        </tr>
+                    </thead>
+                    <tbody id="move-history-body">
+                        <!-- Moves will be inserted here -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="p-4 bg-yellow-50 text-xs text-yellow-800 border-t border-yellow-100">
+                <strong>Note:</strong> Used Stockfish via Web Worker. If playing offline, ensure local server is running
+                for worker security permissions.
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- Logic -->
+    <script>
+        // --- Game State & Config ---
+        var board = null;
+        var game = new Chess();
+        var $status = $('#status');
+        var $fen = $('#fen');
+        var $pgn = $('#pgn');
+        var stockfish = null;
+        var waitingForBot = false;
+        var stockfishDepth = 20;
+        var ecoDatabase = {};
+
+        // --- SVGs for Pieces (simplified mappings needed for Chessboardjs default themes or custom) ---
+        // For standalone simplicty, we will use the default wikipedia pieces provided by chessboard.js CDN.
+        // If we strictly wanted the custom SVGs, we'd need to map them here.
+
+        // --- Sound Effects ---
+        function playSound(type) {
+             const sounds = {
+                'move': '../public/about-me/chess-sounds/move-self.mp3',
+                'move-computer': '../public/about-me/chess-sounds/move-opponent.mp3',
+                'capture': '../public/about-me/chess-sounds/capture.mp3',
+                'check': '../public/about-me/chess-sounds/move-check.mp3',
+                'castle': '../public/about-me/chess-sounds/castle.mp3',
+                'promote': '../public/sounds/promote.mp3',
+            };
+            const src = sounds[type] || sounds['move'];
+            const audio = new Audio(src);
+            audio.volume = 0.5;
+            audio.play().catch(e => console.warn("Audio blocked:", e));
+        }
+
+
+        // --- Stockfish Init ---
+        function initStockfish() {
+            // NOTE: This path must be correct relative to this HTML file.
+            // Assuming HTML is in /standalone-chess/ and public is in /public/
+            // Path should be ../public/about-me/chessEngine/stockfish-17-lite-single.js
+            stockfish = new Worker('../public/about-me/chessEngine/stockfish-17-lite-single.js');
+            
+            stockfish.postMessage('uci');
+            stockfish.postMessage('setoption name UCI_LimitStrength value true');
+            stockfish.postMessage('setoption name UCI_Elo value 1700');
+            stockfish.postMessage('isready');
+
+            stockfish.onmessage = function(event) {
+                // Console log for debugging
+                // console.log(event.data);
+
+                // Check for best move
+                const match = event.data.match(/bestmove ([a-h][1-8][a-h][1-8][qrbn]?)/);
+                if (match && waitingForBot) {
+                    const bestMove = match[1];
+                    // Make the move
+                    game.move({
+                        from: bestMove.substring(0, 2),
+                        to: bestMove.substring(2, 4),
+                        promotion: bestMove.length > 4 ? bestMove[4] : 'q'
+                    });
+
+                    // Update UI
+                    board.position(game.fen());
+                    updateStatus();
+                    playSound('move-computer');
+                    waitingForBot = false;
+                }
+            };
+        }
+
+        // --- ECO Database ---
+        async function loadEcoDatabase() {
+            try {
+                const files = ['ecoA', 'ecoB', 'ecoC', 'ecoD', 'ecoE'];
+                for (const file of files) {
+                    const response = await fetch(`../public/eco-openings/${file}.json`);
+                    const data = await response.json();
+                    Object.assign(ecoDatabase, data);
+                }
+            } catch (e) {
+                console.error("Could not load ECO database", e);
+            }
+        }
+        
+        function findOpening() {
+            // Simple lookup logic
+            const history = game.history({ verbose: true });
+            if (history.length === 0) return "Starting Position";
+            
+            // Reconstruct moves string (e.g., "1. e4 e5 ...") - ECO keys are usually moves like "e4 e5 Nf3"
+             // Actually Eco json is usually keyed by code or moves.
+             // Based on the React code, it matches PGN move styles. 
+             // Simplification: just show "Game in Progress" if too complex to map exactly without the React helper utilities.
+            return "Game in Progress";
+        }
+
+
+        // --- Board Logic ---
+        function onDragStart (source, piece, position, orientation) {
+            // do not pick up pieces if the game is over
+            if (game.game_over()) return false;
+            // only pick up pieces for the side to move
+            if (game.turn() === 'w' && piece.search(/^b/) !== -1) return false;
+            if (game.turn() === 'b' && piece.search(/^w/) !== -1) return false;
+            // only pick up if not waiting for bot
+            if (waitingForBot) return false;
+        }
+
+        function onDrop (source, target) {
+            // see if the move is legal
+            var move = game.move({
+                from: source,
+                to: target,
+                promotion: 'q' // NOTE: always promote to a queen for example simplicity
+            });
+
+            // illegal move
+            if (move === null) return 'snapback';
+
+            updateStatus();
+            
+            // Sound
+            if (move.captured) playSound('capture');
+            else if (game.in_check()) playSound('check');
+            else playSound('move');
+
+            // Trigger Bot
+            if (!game.game_over()) {
+                waitingForBot = true;
+                // Add a small delay for realism
+                setTimeout(() => {
+                    stockfish.postMessage('position fen ' + game.fen());
+                    stockfish.postMessage('go depth ' + stockfishDepth);
+                }, 250);
+            }
+        }
+
+        function onSnapEnd () {
+            board.position(game.fen());
+        }
+
+        function updateStatus () {
+            var status = '';
+
+            var moveColor = 'White';
+            if (game.turn() === 'b') {
+                moveColor = 'Black';
+            }
+
+            // checkmate?
+            if (game.in_checkmate()) {
+                status = 'Game over, ' + moveColor + ' is in checkmate.';
+                updateAvatar(moveColor === 'White' ? 'rage' : 'happy', "Checkmate! I win!");
+            }
+
+            // draw?
+            else if (game.in_draw()) {
+                status = 'Game over, drawn position';
+                updateAvatar('thinking', "It's a draw.");
+            }
+
+            // game still on
+            else {
+                status = moveColor + ' to move';
+                 if (game.in_check()) {
+                    status += ', ' + moveColor + ' is in check';
+                }
+                
+                // Normal avatars
+                if (waitingForBot) updateAvatar('thinking', "Thinking...");
+                else updateAvatar('default', "");
+            }
+            
+            updateHistory();
+            updateCaptured();
+        }
+        
+        function updateAvatar(state, message) {
+            const avatarImg = document.getElementById('reaction-avatar');
+            const msgContainer = document.getElementById('reaction-message-container');
+            const msgText = document.getElementById('reaction-message');
+            
+            const map = {
+                'default': 'default.png',
+                'thinking': 'thinking.png',
+                'happy': 'happy.png',
+                'rage': 'rage.png',
+                'wave': 'waving.png'
+            };
+            
+            avatarImg.src = `../public/about-me/chess-avatar/${map[state] || 'default.png'}`;
+            
+            if (message) {
+                msgText.innerText = message;
+                msgContainer.classList.remove('hidden');
+            } else {
+                msgContainer.classList.add('hidden');
+            }
+        }
+
+        function updateHistory() {
+            const history = game.history();
+            const tbody = document.getElementById('move-history-body');
+            tbody.innerHTML = '';
+            
+            for (let i = 0; i < history.length; i += 2) {
+                const whiteMove = history[i];
+                const blackMove = history[i+1] || '';
+                const moveNum = Math.floor(i/2) + 1;
+                
+                const row = `
+                    <tr class="border-b border-gray-100 last:border-0">
+                        <td class="py-2 text-gray-500">${moveNum}.</td>
+                        <td class="py-2 font-medium">${whiteMove}</td>
+                        <td class="py-2 text-gray-700">${blackMove}</td>
+                    </tr>
+                `;
+                tbody.innerHTML += row;
+            }
+            
+            // Scroll to bottom
+            const container = tbody.parentElement.parentElement;
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        function updateCaptured() {
+            // Simplified capture tracking logic
+            // In a real app we'd diff the board, but for now we can rely on history or FEN analysis
+            // This is complex to do perfectly in vanilla without a helper, skipping visual captured pieces for MVP of standalone.
+        }
+
+        // --- Init ---
+        var config = {
+            draggable: true,
+            position: 'start',
+            onDragStart: onDragStart,
+            onDrop: onDrop,
+            onSnapEnd: onSnapEnd,
+            pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png' // Default style
+        };
+        
+        board = Chessboard('myBoard', config);
+        
+        initStockfish();
+        loadEcoDatabase();
+
+        // Button Handlers
+        $('#resetBtn').on('click', function() {
+            game.reset();
+            board.start();
+            waitingForBot = false;
+            stockfish.postMessage('ucinewgame');
+            stockfish.postMessage('isready');
+            updateStatus();
+        });
+        
+        $('#undoBtn').on('click', function() {
+            if (waitingForBot) return;
+            game.undo(); // Undo Computer
+            game.undo(); // Undo Player
+            board.position(game.fen());
+            updateStatus();
+        });
+
+        $(window).resize(board.resize);
+
+    </script>
+</body>
+
+</html>
