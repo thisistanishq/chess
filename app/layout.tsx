@@ -46,7 +46,105 @@ export default function RootLayout({ children, }: Readonly<{ children: React.Rea
     return (
         <html lang="en" className="dark">
             <body className={`${Sohne.variable} ${Plantijn.variable} ${kalam.variable} bg-background`}>
-                <script dangerouslySetInnerHTML={{ __html: `(function(){'use strict';const showSecurityToast=(msg)=>{const toast=document.createElement('div');toast.innerHTML='<div style="display:flex; align-items:center; gap:10px;"><span style="font-size:20px;">🛡️</span> <span>'+msg+'</span></div>';toast.style.position='fixed';toast.style.top='20px';toast.style.left='50%';toast.style.transform='translateX(-50%)';toast.style.backgroundColor='rgba(255, 0, 0, 0.9)';toast.style.color='#fff';toast.style.padding='12px 24px';toast.style.borderRadius='8px';toast.style.fontFamily='monospace';toast.style.zIndex='999999';toast.style.boxShadow='0 5px 15px rgba(0,0,0,0.5)';toast.style.backdropFilter='blur(10px)';toast.style.border='1px solid rgba(255,255,255,0.2)';document.body.appendChild(toast);setTimeout(()=>toast.remove(),3000);};document.addEventListener('contextmenu',function(e){e.preventDefault();showSecurityToast("SECURITY PROTOCOL: CONTEXT MENU DISABLED");return false;});document.addEventListener('keydown',function(e){if(e.key==='F12'||e.keyCode===123){e.preventDefault();showSecurityToast("🚫 DEVTOOLS ACCESS DENIED");return false;}if(e.ctrlKey||e.metaKey){const key=e.key.toLowerCase();if(['u','s','p'].includes(key)){e.preventDefault();showSecurityToast("🚫 ACTION RESTRICTED");return false;}if(e.shiftKey&&['i','j','c'].includes(key)){e.preventDefault();showSecurityToast("🚫 SYSTEM INTEGRITY: DEVTOOLS BLOCKED");return false;}}});setInterval(function(){const t=new Date().getTime();debugger;if(new Date().getTime()-t>100){document.body.innerHTML='<div style="background:#000;color:red;height:100vh;display:flex;align-items:center;justify-content:center;font-family:monospace;font-size:30px;">⚠️ ILLEGAL DEBUGGING DETECTED ⚠️</div>';}},3000);})();` }} />
+                <script dangerouslySetInnerHTML={{
+                    __html: `
+                    (function() {
+                        'use strict';
+                        
+                        // 1. Disable Right Click
+                        document.addEventListener('contextmenu', function(e) {
+                            e.preventDefault();
+                            return false;
+                        });
+
+                        // 2. Disable Dragging
+                        document.ondragstart = function() { return false; };
+
+                        // 3. Keydown Prevention (Aggressive)
+                        document.addEventListener('keydown', function(e) {
+                            // F12
+                            if (e.key === 'F12' || e.keyCode === 123) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                return false;
+                            }
+
+                            // Ctrl+Shift+I, J, C, U (Windows/Linux)
+                            if (e.ctrlKey && e.shiftKey && ['I', 'J', 'C', 'U'].includes(e.key.toUpperCase())) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                return false;
+                            }
+
+                            // Cmd+Option+I, J, C, U (Mac)
+                            if (e.metaKey && e.altKey && ['I', 'J', 'C', 'U'].includes(e.key.toUpperCase())) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                return false;
+                            }
+
+                            // Ctrl/Cmd + U (View Source)
+                            if ((e.ctrlKey || e.metaKey) && e.key.toUpperCase() === 'U') {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                return false;
+                            }
+
+                            // Ctrl/Cmd + S (Save Page)
+                            if ((e.ctrlKey || e.metaKey) && e.key.toUpperCase() === 'S') {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                return false;
+                            }
+                            
+                            // Ctrl/Cmd + P (Print)
+                            if ((e.ctrlKey || e.metaKey) && e.key.toUpperCase() === 'P') {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                return false;
+                            }
+                        });
+
+
+                        // 4. Advanced DevTools Detection & Nuke
+                        function nuke() {
+                            document.body.innerHTML = '<div style="background:#000;color:#ff0000;height:100vh;display:flex;align-items:center;justify-content:center;font-family:monospace;font-size:3rem;font-weight:bold;text-align:center;">SYSTEM LOCKED<br>SECURITY BREACH DETECTED</div>';
+                            document.body.style.overflow = 'hidden';
+                            // Intentional infinite loop to freeze browser tab if they persist
+                             while(true) { 
+                                eval("debugger"); 
+                            }
+                        }
+
+                        // Debugger Loop (Trap)
+                        setInterval(function() {
+                            const start = performance.now();
+                            debugger; 
+                            const end = performance.now();
+                            if (end - start > 100) {
+                                // Breakpoint hit means DevTools is open/paused
+                                nuke();
+                            }
+                        }, 500);
+
+                        // Screen Resize Detection (Console often resizes window)
+                        /*
+                        // Commented out as this can affect genuine resizing. 
+                        // Re-enable if user wants extreme "No Resize" policy.
+                        // window.addEventListener('resize', function() {
+                        //    if (window.outerWidth - window.innerWidth > 100 || window.outerHeight - window.innerHeight > 100) {
+                        //        nuke();
+                        //    }
+                        // });
+                        */
+
+                        // Check Console Object integrity
+                        if (window.console && (console.firebug || console.table && /firebug/i.test(console.table()))) {
+                            nuke();
+                        }
+                        
+                    })();
+                ` }} />
                 {children}
             </body>
         </html >
