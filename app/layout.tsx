@@ -82,8 +82,14 @@ export default function RootLayout({ children, }: Readonly<{ children: React.Rea
                         
                         // Mouse Blocking
                         window.addEventListener('contextmenu', e => { e.preventDefault(); return false; }, { capture: true });
-                        window.addEventListener('dragstart', e => { e.preventDefault(); return false; }, { capture: true });
-                        window.addEventListener('selectstart', e => { e.preventDefault(); return false; }, { capture: true });
+                        // Dragstart removed to fix Chess
+                        
+                        // Disable Text Selection (CSS handled mostly, but JS backup)
+                        // Only block if not in an input/textarea
+                        window.addEventListener('selectstart', e => { 
+                            if(['INPUT','TEXTAREA'].includes((e.target as HTMLElement).tagName)) return true;
+                            e.preventDefault(); return false; 
+                        }, { capture: true });
 
                         // DevTools Trap (50ms)
                         setInterval(() => {
