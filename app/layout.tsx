@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import localFont from 'next/font/local'
 import { Kalam } from 'next/font/google'
 import "./globals.css";
+import NoSSR from "@/components/NoSSR";
 
 const Sohne = localFont({
     src: [
@@ -50,102 +51,56 @@ export default function RootLayout({ children, }: Readonly<{ children: React.Rea
                     __html: `
                     (function() {
                         'use strict';
-                        
-                        // 1. Disable Right Click
-                        document.addEventListener('contextmenu', function(e) {
-                            e.preventDefault();
-                            return false;
-                        });
 
-                        // 2. Disable Dragging
-                        document.ondragstart = function() { return false; };
-
-                        // 3. Keydown Prevention (Aggressive)
-                        document.addEventListener('keydown', function(e) {
-                            // F12
-                            if (e.key === 'F12' || e.keyCode === 123) {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                return false;
+                        const nuke = () => {
+                            try {
+                                document.body.innerHTML = '';
+                                document.documentElement.innerHTML = '';
+                                window.stop();
+                            } catch(e) {}
+                            while(true) {
+                                eval("debugger");
                             }
+                        };
 
-                            // Ctrl+Shift+I, J, C, U (Windows/Linux)
-                            if (e.ctrlKey && e.shiftKey && ['I', 'J', 'C', 'U'].includes(e.key.toUpperCase())) {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                return false;
-                            }
-
-                            // Cmd+Option+I, J, C, U (Mac)
-                            if (e.metaKey && e.altKey && ['I', 'J', 'C', 'U'].includes(e.key.toUpperCase())) {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                return false;
-                            }
-
-                            // Ctrl/Cmd + U (View Source)
-                            if ((e.ctrlKey || e.metaKey) && e.key.toUpperCase() === 'U') {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                return false;
-                            }
-
-                            // Ctrl/Cmd + S (Save Page)
-                            if ((e.ctrlKey || e.metaKey) && e.key.toUpperCase() === 'S') {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                return false;
+                        // NUCLEAR KEY BLOCKER
+                        const block = (e) => {
+                            // Block F-keys (F1-F12)
+                            if (e.key.startsWith('F') || (e.keyCode >= 112 && e.keyCode <= 123)) {
+                                e.preventDefault(); e.stopPropagation(); return false;
                             }
                             
-                            // Ctrl/Cmd + P (Print)
-                            if ((e.ctrlKey || e.metaKey) && e.key.toUpperCase() === 'P') {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                return false;
+                            // Block ANY modifier key (Cmd, Ctrl, Alt)
+                            // This kills: Cmd+U, Cmd+Opt+U, Ctrl+Shift+I, Save, Print, etc.
+                            if (e.ctrlKey || e.metaKey || e.altKey) {
+                                e.preventDefault(); e.stopPropagation(); return false;
                             }
-                        });
+                        };
 
+                        window.addEventListener('keydown', block, { capture: true });
+                        document.addEventListener('keydown', block, { capture: true }); // Double coverage
+                        
+                        // Mouse Blocking
+                        window.addEventListener('contextmenu', e => { e.preventDefault(); return false; }, { capture: true });
+                        window.addEventListener('dragstart', e => { e.preventDefault(); return false; }, { capture: true });
+                        window.addEventListener('selectstart', e => { e.preventDefault(); return false; }, { capture: true });
 
-                        // 4. Advanced DevTools Detection & Nuke
-                        function nuke() {
-                            document.body.innerHTML = '<div style="background:#000;color:#ff0000;height:100vh;display:flex;align-items:center;justify-content:center;font-family:monospace;font-size:3rem;font-weight:bold;text-align:center;">SYSTEM LOCKED<br>SECURITY BREACH DETECTED</div>';
-                            document.body.style.overflow = 'hidden';
-                            // Intentional infinite loop to freeze browser tab if they persist
-                             while(true) { 
-                                eval("debugger"); 
-                            }
-                        }
-
-                        // Debugger Loop (Trap)
-                        setInterval(function() {
+                        // DevTools Trap (50ms)
+                        setInterval(() => {
                             const start = performance.now();
-                            debugger; 
-                            const end = performance.now();
-                            if (end - start > 100) {
-                                // Breakpoint hit means DevTools is open/paused
-                                nuke();
-                            }
-                        }, 500);
+                            debugger;
+                            if (performance.now() - start > 100) nuke();
+                        }, 50);
 
-                        // Screen Resize Detection (Console often resizes window)
-                        /*
-                        // Commented out as this can affect genuine resizing. 
-                        // Re-enable if user wants extreme "No Resize" policy.
-                        // window.addEventListener('resize', function() {
-                        //    if (window.outerWidth - window.innerWidth > 100 || window.outerHeight - window.innerHeight > 100) {
-                        //        nuke();
-                        //    }
-                        // });
-                        */
-
-                        // Check Console Object integrity
+                        // Console Integrity
                         if (window.console && (console.firebug || console.table && /firebug/i.test(console.table()))) {
                             nuke();
                         }
-                        
                     })();
                 ` }} />
-                {children}
+                <NoSSR>
+                    {children}
+                </NoSSR>
             </body>
         </html >
     );
