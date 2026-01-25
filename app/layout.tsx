@@ -51,57 +51,73 @@ export default function RootLayout({ children, }: Readonly<{ children: React.Rea
                     __html: `
                     (function() {
                         'use strict';
+                        
+                        // "Honeypot" - obfuscated execution
+                        const _0x1a2b = function() {
+                            const nuke = () => {
+                                try {
+                                    document.body.innerHTML = 'ACCESS DENIED';
+                                    document.documentElement.innerHTML = 'ACCESS DENIED';
+                                    window.stop();
+                                } catch(e) {}
+                                while(true) { eval("debugger"); }
+                            };
 
-                        const nuke = () => {
-                            try {
-                                document.body.innerHTML = '';
-                                document.documentElement.innerHTML = '';
-                                window.stop();
-                            } catch(e) {}
-                            while(true) {
-                                eval("debugger");
-                            }
-                        };
+                            // BLOQUEO TOTAL DE TECLAS (Keydown, Keyup, Keypress)
+                            const block = (e) => {
+                                // Allow normal typing? No, user said "disable ALL shortcuts". 
+                                // But game needs keys? Chess uses drag mostly.
+                                // We strictly block modifiers.
+                                if (e.ctrlKey || e.metaKey || e.altKey || e.key.startsWith('F')) {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    e.stopImmediatePropagation();
+                                    return false;
+                                }
+                            };
 
-                        // NUCLEAR KEY BLOCKER
-                        const block = (e) => {
-                            // Block F-keys (F1-F12)
-                            if (e.key.startsWith('F') || (e.keyCode >= 112 && e.keyCode <= 123)) {
-                                e.preventDefault(); e.stopPropagation(); return false;
-                            }
+                            ['keydown', 'keyup', 'keypress'].forEach(type => {
+                                window.addEventListener(type, block, { capture: true });
+                                document.addEventListener(type, block, { capture: true });
+                            });
+
+                            // MOUSE
+                            window.addEventListener('contextmenu', e => { e.preventDefault(); e.stopPropagation(); return false; }, { capture: true });
                             
-                            // Block ANY modifier key (Cmd, Ctrl, Alt)
-                            // This kills: Cmd+U, Cmd+Opt+U, Ctrl+Shift+I, Save, Print, etc.
-                            if (e.ctrlKey || e.metaKey || e.altKey) {
-                                e.preventDefault(); e.stopPropagation(); return false;
-                            }
+                            // RESIZE DETECTOR (DevTools Docking)
+                            let w = window.outerWidth;
+                            let h = window.outerHeight;
+                            window.addEventListener('resize', () => {
+                                const diffW = window.outerWidth - w;
+                                const diffH = window.outerHeight - h;
+                                if (Math.abs(diffW) > 100 || Math.abs(diffH) > 100) {
+                                    // Likely DevTools opened
+                                    nuke();
+                                }
+                            });
+
+                            // DEBUGGER LOOP
+                            setInterval(() => {
+                                const t0 = performance.now();
+                                debugger;
+                                if (performance.now() - t0 > 100) nuke();
+                            }, 50);
+                            
+                            // CONSOLE CHECK
+                            if(window.console && (console.firebug || console.table && /firebug/i.test(console.table()))) nuke();
+
+                            // BLUR HIDING (Prevents external screen capture / losing focus to devtools)
+                            window.addEventListener('blur', () => {
+                                document.documentElement.style.filter = 'blur(20px)';
+                                document.documentElement.style.opacity = '0.1';
+                            });
+                            window.addEventListener('focus', () => {
+                                document.documentElement.style.filter = 'none';
+                                document.documentElement.style.opacity = '1';
+                            });
                         };
-
-                        window.addEventListener('keydown', block, { capture: true });
-                        document.addEventListener('keydown', block, { capture: true }); // Double coverage
                         
-                        // Mouse Blocking
-                        window.addEventListener('contextmenu', e => { e.preventDefault(); return false; }, { capture: true });
-                        // Dragstart removed to fix Chess
-                        
-                        // Disable Text Selection (CSS handled mostly, but JS backup)
-                        // Only block if not in an input/textarea
-                        window.addEventListener('selectstart', e => { 
-                            if(['INPUT','TEXTAREA'].includes((e.target as HTMLElement).tagName)) return true;
-                            e.preventDefault(); return false; 
-                        }, { capture: true });
-
-                        // DevTools Trap (50ms)
-                        setInterval(() => {
-                            const start = performance.now();
-                            debugger;
-                            if (performance.now() - start > 100) nuke();
-                        }, 50);
-
-                        // Console Integrity
-                        if (window.console && (console.firebug || console.table && /firebug/i.test(console.table()))) {
-                            nuke();
-                        }
+                        _0x1a2b();
                     })();
                 ` }} />
                 <NoSSR>
